@@ -1,95 +1,139 @@
-// Importa las dependencias necesarias de React y React Native.
-import React from 'react';
-// Importa varios componentes de React Native.
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert } from 'react-native';
-// Importa el almacenamiento asíncrono de @react-native-async-storage.
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert, Modal, TextInput, Picker } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Importa un componente personalizado ShinyButton desde la carpeta de componentes.
-import ShinyButton from '../components/ShinyButton';
-// Importa los estilos desde el archivo styles.
+import VehicleReminder from '../components/VehicleReminder'; // Asegúrate de que la ruta es correcta
 import styles from '../styles/styles';
 
-// Define el componente funcional RemindersListScreen, recibe las props route y navigation.
 function RemindersListScreen({ route, navigation }) {
-  // Desestructura el objeto vehicle de los parámetros de la ruta.
   const { vehicle } = route.params;
-  // Define el estado local para almacenar los recordatorios del vehículo.
-  const [reminders, setReminders] = React.useState(vehicle.reminders);
+  console.log('Vehicle received:', vehicle);
+  const [reminders, setReminders] = useState(vehicle.reminders || []);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingReminder, setEditingReminder] = useState(null);
+  const [reminderEvent, setReminderEvent] = useState('');
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [location, setLocation] = useState('');
+  const [priority, setPriority] = useState('Normal');
 
-  // Función para eliminar un recordatorio.
   const deleteReminder = (id) => {
-    // Muestra una alerta de confirmación antes de eliminar el recordatorio.
     Alert.alert(
       'Confirmar Eliminación',
       '¿Estás seguro de que quieres eliminar este recordatorio?',
       [
         {
-          text: 'Cancelar', // Opción para cancelar la eliminación.
+          text: 'Cancelar',
           style: 'cancel',
         },
         {
-          text: 'Eliminar', // Opción para confirmar la eliminación.
+          text: 'Eliminar',
           onPress: () => {
-            // Filtra el recordatorio a eliminar.
             const updatedReminders = reminders.filter((reminder) => reminder.id !== id);
-            setReminders(updatedReminders); // Actualiza el estado de los recordatorios.
-            saveReminders(updatedReminders); // Guarda los recordatorios actualizados.
+            setReminders(updatedReminders);
+            saveReminders(updatedReminders);
           },
         },
       ],
-      { cancelable: true } // Permite cancelar la alerta tocando fuera de ella.
+      { cancelable: true }
     );
   };
 
-  // Función para guardar los recordatorios actualizados en AsyncStorage.
+  const editReminder = (reminder) => {
+    setEditingReminder(reminder);
+    setReminderEvent(reminder.event);
+    setStartDate(new Date(reminder.start));
+    setEndDate(new Date(reminder.end));
+    setLocation(reminder.location);
+    setPriority(reminder.priority);
+    setModalVisible(true);
+  };
+
   const saveReminders = async (updatedReminders) => {
     try {
-      // Obtiene los vehículos almacenados.
       const storedVehicles = await AsyncStorage.getItem('vehicles');
       let vehicles = storedVehicles ? JSON.parse(storedVehicles) : [];
-      // Actualiza el vehículo correspondiente con los nuevos recordatorios.
       vehicles = vehicles.map((v) => (v.id === vehicle.id ? { ...v, reminders: updatedReminders } : v));
-      // Guarda los vehículos actualizados en AsyncStorage.
       await AsyncStorage.setItem('vehicles', JSON.stringify(vehicles));
     } catch (error) {
-      // Maneja cualquier error que ocurra durante el proceso de guardado.
       console.error('Error saving reminders to AsyncStorage', error);
     }
   };
 
-  // Renderiza un elemento de la lista de recordatorios.
+  const handleSaveChanges = () => {
+    const updatedReminders = reminders.map((reminder) =>
+      reminder.id === editingReminder.id
+        ? { ...reminder, event: reminderEvent, start: startDate.toISOString(), end: endDate.toISOString(), location, priority }
+        : reminder
+    );
+    setReminders(updatedReminders);
+    saveReminders(updatedReminders);
+    setModalVisible(false);
+  };
+
   const renderItem = ({ item }) => (
-    <View style={styles.reminderItem}>
-      {/* Muestra el título del evento del recordatorio. */}
-      <Text style={styles.reminderTitle}>{item.event}</Text>
-      {/* Muestra la fecha de inicio del recordatorio. */}
-      <Text style={styles.reminderDetail}>Inicio: {new Date(item.start).toDateString()}</Text>
-      {/* Muestra la fecha de fin del recordatorio. */}
-      <Text style={styles.reminderDetail}>Fin: {new Date(item.end).toDateString()}</Text>
-      {/* Muestra la ubicación del recordatorio. */}
-      <Text style={styles.reminderDetail}>Ubicación: {item.location}</Text>
-      {/* Muestra la prioridad del recordatorio. */}
-      <Text style={styles.reminderDetail}>Prioridad: {item.priority}</Text>
-      {/* Botón para eliminar el recordatorio. */}
-      <TouchableOpacity style={styles.deleteButton} onPress={() => deleteReminder(item.id)}>
-        <Text style={styles.deleteButtonText}>Eliminar</Text>
-      </TouchableOpacity>
-    </View>
+    <VehicleReminder
+      reminder={item}
+      onDelete={() => deleteReminder(item.id)}
+      onEdit={() => editReminder(item)}
+    />
   );
 
-  // Renderiza la interfaz de usuario del componente.
   return (
     <View style={styles.container}>
-      {/* Lista de recordatorios, renderiza cada recordatorio usando renderItem. */}
-      <FlatList
-        data={reminders}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id} // Usa el ID del recordatorio como clave.
-        contentContainerStyle={styles.listContent}
-      />
+      {reminders.length > 0 ? (
+        <FlatList
+          data={reminders}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <Text style={styles.noRemindersText}>No hay recordatorios</Text>
+      )}
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>Editar Recordatorio</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Evento"
+              onChangeText={(text) => setReminderEvent(text)}
+              value={reminderEvent}
+            />
+            <TouchableOpacity onPress={() => setShowStartDatePicker(true)}>
+              <Text style={styles.datePickerText}>Fecha de Inicio: {startDate.toDateString()}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowEndDatePicker(true)}>
+              <Text style={styles.datePickerText}>Fecha de Fin: {endDate.toDateString()}</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Ubicación"
+              onChangeText={(text) => setLocation(text)}
+              value={location}
+            />
+            <Picker selectedValue={priority} style={styles.picker} onValueChange={(itemValue) => setPriority(itemValue)}>
+              <Picker.Item label="Normal" value="Normal" />
+              <Picker.Item label="Alta" value="Alta" />
+              <Picker.Item label="Baja" value="Baja" />
+            </Picker>
+            <TouchableOpacity style={styles.button} onPress={handleSaveChanges}>
+              <Text style={styles.buttonText}>Guardar Cambios</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={() => setModalVisible(false)}>
+              <Text style={styles.buttonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-// Exporta el componente RemindersListScreen como el componente por defecto del módulo.
 export default RemindersListScreen;
