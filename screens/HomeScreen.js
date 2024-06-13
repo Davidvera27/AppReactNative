@@ -37,6 +37,36 @@ function HomeScreen({ navigation }) {
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Confirmar Eliminación',
+      '¿Estás seguro de que quieres eliminar los vehículos seleccionados?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          onPress: async () => {
+            const updatedVehicles = vehicles.filter((vehicle) => !selectedVehicles.includes(vehicle.id));
+            setSelectedVehicles([]);
+            setIsEditMode(false);
+            setVehicles(updatedVehicles);
+            await saveVehicles(updatedVehicles);
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const addVehicle = (newVehicle) => {
+    const updatedVehicles = [...vehicles, newVehicle];
+    setVehicles(updatedVehicles);
+    saveVehicles(updatedVehicles);
+  };
+
   const toggleVehicleSelection = (id) => {
     setSelectedVehicles((prevSelected) => {
       const updatedSelection = new Set(prevSelected);
@@ -52,36 +82,6 @@ function HomeScreen({ navigation }) {
   const toggleEditMode = () => {
     setIsEditMode(!isEditMode);
     setSelectedVehicles([]);
-  };
-
-  const handleDelete = () => {
-    Alert.alert(
-      'Confirmar Eliminación',
-      '¿Estás seguro de que quieres eliminar los vehículos seleccionados?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Eliminar',
-          onPress: () => {
-            const updatedVehicles = vehicles.filter((vehicle) => !selectedVehicles.includes(vehicle.id));
-            setSelectedVehicles([]);
-            setIsEditMode(false);
-            setVehicles(updatedVehicles);
-            saveVehicles(updatedVehicles);
-          },
-        },
-      ],
-      { cancelable: true }
-    );
-  };
-
-  const addVehicle = (newVehicle) => {
-    const updatedVehicles = [...vehicles, newVehicle];
-    setVehicles(updatedVehicles);
-    saveVehicles(updatedVehicles);
   };
 
   const CheckBox = ({ isChecked, id }) => (
@@ -114,7 +114,7 @@ function HomeScreen({ navigation }) {
   );
 
   return (
-    <ImageBackground source={require('../assets/BackGround_HOME_5.png')} style={styles.backgroundImage}>
+    <ImageBackground source={require('../assets/Background_HOME.webp')} style={styles.backgroundImage}>
       <View style={styles.overlay}>
         <View style={styles.headerContainer}>
           <Text style={styles.header}>Vehicle Manager</Text>
