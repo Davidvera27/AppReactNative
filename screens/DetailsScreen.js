@@ -89,9 +89,10 @@ function DetailsScreen({ route, navigation }) {
           {/* Muestra la placa del vehículo. */}
           <Text style={styles.subtitle}>Placa: {vehicle.plate}</Text>
           {/* Muestra el color del vehículo. */}
-          <Text style={styles.detail}>Color: {vehicle.color}</Text>
+          
           {/* Muestra el tipo del vehículo. */}
-          <Text style={styles.detail}>Tipo: {vehicle.type}</Text>
+          <Text style={styles.vehicleDetailText}>Color: {vehicle.color}</Text>
+          <Text style={styles.vehicleDetailText}>Tipo: {vehicle.type}</Text>
           {/* Botón para añadir un recordatorio, abre el modal al presionarlo. */}
           <TouchableOpacity style={styles.reminderButton} onPress={() => setModalVisible(true)}>
             <ShinyButton title="Añadir Recordatorio" onPress={() => setModalVisible(true)} />
@@ -109,10 +110,10 @@ function DetailsScreen({ route, navigation }) {
             onRequestClose={() => setModalVisible(!modalVisible)}
           >
             {/* Vista centrada dentro del modal. */}
-            <View style={styles.centeredView}>
+            <View style={styles.modalOverlay}>
               <View style={styles.modalView}>
                 {/* Texto del modal. */}
-                <Text style={styles.modalText}>Añadir Recordatorio</Text>
+                <Text style={styles.modalTitle}>Añadir Recordatorio</Text>
                 {/* Campo de entrada de texto para el evento del recordatorio. */}
                 <TextInput
                   style={styles.input}
